@@ -1,0 +1,15 @@
+name: no-failed-ci-gatekeeper
+description: a gatekeeper that stands in for the required checks missing when conditional workflows are skipped.
+author: mtsmfm
+inputs:
+  github-token:
+    description: The GitHub token to use for authentication.
+    required: false
+    default: ${{ github.token }}
+  context:
+    description: The context (label) to use for the commit status.
+    required: false
+    default: no-failed-ci-gatekeeper
+runs:
+  using: node20
+  main: dist/index.js
