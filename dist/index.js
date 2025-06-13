@@ -23880,11 +23880,14 @@ async function run() {
     const octokit = github.getOctokit(token);
     const { context } = github;
     switch (context.eventName) {
+      case "pull_request":
+        await handlePullRequest(octokit, context, statusContext);
+        break;
+      case "workflow_run":
+        await handleWorkflowRun(octokit, context, statusContext);
+        break;
       case "pull_request_review":
         await handlePullRequestReview(octokit, context, statusContext);
-        break;
-      case "check_suite":
-        await handleCheckSuite(octokit, context, statusContext);
         break;
       default:
         core.info(`This action doesn't handle ${context.eventName} events`);
@@ -23896,6 +23899,26 @@ async function run() {
       core.setFailed("An unknown error occurred");
     }
   }
+}
+async function handlePullRequest(octokit, context, statusContext) {
+  const pr = context.payload.pull_request;
+  if (!pr) {
+    core.setFailed("Could not get pull request information from context");
+    return;
+  }
+  const owner = context.repo.owner;
+  const repo = context.repo.repo;
+  const sha = pr.head.sha;
+  core.info(`Setting initial pending status for PR #${pr.number} (${sha})`);
+  await octokit.rest.repos.createCommitStatus({
+    owner,
+    repo,
+    sha,
+    state: "pending",
+    context: statusContext,
+    description: "Waiting for CI workflows to complete"
+  });
+  core.info("Set initial pending status");
 }
 async function handlePullRequestReview(octokit, context, statusContext) {
   const review = context.payload.review;
@@ -23928,38 +23951,19 @@ async function handlePullRequestReview(octokit, context, statusContext) {
     core.info("Set success status for approved PR with no workflows");
   }
 }
-async function handleCheckSuite(octokit, context, statusContext) {
-  const checkSuite = context.payload.check_suite;
-  if (!checkSuite) {
-    core.info("No check_suite data in payload");
+async function handleWorkflowRun(octokit, context, statusContext) {
+  const workflowRun = context.payload.workflow_run;
+  if (!workflowRun) {
+    core.info("No workflow_run data in payload");
+    return;
+  }
+  if (workflowRun.status !== "completed") {
+    core.info(`Workflow run ${workflowRun.id} is not completed yet`);
     return;
   }
   const owner = context.repo.owner;
   const repo = context.repo.repo;
-  const sha = checkSuite.head_sha;
-  if (checkSuite.status === "requested" || checkSuite.status === "queued") {
-    const prs2 = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
-      owner,
-      repo,
-      commit_sha: sha
-    });
-    if (prs2.data.length > 0) {
-      await octokit.rest.repos.createCommitStatus({
-        owner,
-        repo,
-        sha,
-        state: "pending",
-        context: statusContext,
-        description: "Waiting for CI workflows to complete"
-      });
-      core.info("Set initial pending status for new check suite");
-    }
-    return;
-  }
-  if (checkSuite.status !== "completed") {
-    core.info(`Check suite ${checkSuite.id} has status: ${checkSuite.status}`);
-    return;
-  }
+  const sha = workflowRun.head_sha;
   const prs = await octokit.rest.repos.listPullRequestsAssociatedWithCommit({
     owner,
     repo,
@@ -23969,27 +23973,40 @@ async function handleCheckSuite(octokit, context, statusContext) {
     core.info("No PRs associated with this commit");
     return;
   }
-  core.info(`Check suite completed for commit ${sha}`);
-  const checkRuns = await octokit.rest.checks.listForSuite({
+  core.info(`Checking all workflows for commit ${sha}`);
+  const allRuns = await octokit.rest.actions.listWorkflowRunsForRepo({
     owner,
     repo,
-    check_suite_id: checkSuite.id
+    head_sha: sha
   });
-  const hasFailures = checkRuns.data.check_runs.some(
+  const pendingRuns = allRuns.data.workflow_runs.filter(
+    (run2) => run2.status === "queued" || run2.status === "in_progress"
+  );
+  if (pendingRuns.length > 0) {
+    core.info(`Still ${pendingRuns.length} workflows pending`);
+    await octokit.rest.repos.createCommitStatus({
+      owner,
+      repo,
+      sha,
+      state: "pending",
+      context: statusContext,
+      description: `Waiting for ${pendingRuns.length} workflow(s) to complete`
+    });
+    return;
+  }
+  const failedRuns = allRuns.data.workflow_runs.filter(
     (run2) => run2.conclusion === "failure" || run2.conclusion === "cancelled"
   );
-  const allSuccess = !hasFailures && checkSuite.conclusion === "success";
+  const allSuccess = failedRuns.length === 0;
   await octokit.rest.repos.createCommitStatus({
     owner,
     repo,
     sha,
     state: allSuccess ? "success" : "failure",
     context: statusContext,
-    description: allSuccess ? `All checks passed` : `Some checks failed`
+    description: allSuccess ? `All ${allRuns.data.workflow_runs.length} workflows passed` : `${failedRuns.length} workflow(s) failed`
   });
-  core.info(
-    `Set ${allSuccess ? "success" : "failure"} status based on check suite`
-  );
+  core.info(`Set ${allSuccess ? "success" : "failure"} status`);
 }
 run();
 /*! Bundled license information:

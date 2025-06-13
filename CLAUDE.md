@@ -14,15 +14,16 @@ A GitHub Action that creates a required status check to prevent accidental merge
 
 ### Events Handled
 
-1. **`check_suite: requested`** - Sets initial "pending" status when PR created/updated
+1. **`pull_request`** - Sets initial "pending" status when PR created/updated
 2. **`check_suite: completed`** - Sets final status (success/failure) when all checks complete
 3. **`pull_request_review: submitted`** - Handles approved PRs with no workflows (sets success)
 
 ### Key Design Decisions
 
-- ✅ Removed `pull_request` event (redundant with `check_suite: requested`)
+- ✅ Use `pull_request` for initial pending status (check_suite "requested" type not reliable)
+- ✅ Use `check_suite: completed` only for final status
 - ✅ Removed `workflow_run` event (redundant with `check_suite: completed`)
-- ✅ Simplified to minimal event set for efficiency
+- ✅ Simplified to essential event set for reliability
 
 ## Build Commands
 

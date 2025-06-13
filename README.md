@@ -13,7 +13,8 @@ You can set the status created by this action as Required status check.
 
 This action creates a single commit status on every PR head commit by responding to GitHub events:
 
-- **On `check_suite` events** -> Sets initial "pending" status when requested, final status when completed
+- **On `pull_request` events** -> Sets initial "pending" status when PR is opened/updated
+- **On `workflow_run` events** -> Updates status as workflows complete, sets final status when all complete
 - **On `pull_request_review` events** -> If PR is approved and no workflows exist, sets "success" status
 
 This event-driven approach avoids wasteful polling and responds immediately to workflow completions.
@@ -24,8 +25,11 @@ This event-driven approach avoids wasteful polling and responds immediately to w
 name: CI Gatekeeper
 
 on:
-  check_suite:
-    types: [requested, completed]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
   pull_request_review:
     types: [submitted]
 
