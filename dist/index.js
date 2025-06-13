@@ -23951,6 +23951,31 @@ async function handlePullRequestReview(octokit, context, statusContext) {
       target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
     });
     core.info("Set success status for approved PR with no workflows");
+  } else {
+    const pendingRuns = workflowRuns.data.workflow_runs.filter(
+      (run2) => run2.status === "queued" || run2.status === "in_progress"
+    );
+    if (pendingRuns.length > 0) {
+      core.info("Workflows still running, not setting status based on approval");
+      return;
+    }
+    const failedRuns = workflowRuns.data.workflow_runs.filter(
+      (run2) => run2.conclusion === "failure" || run2.conclusion === "cancelled"
+    );
+    if (failedRuns.length > 0) {
+      core.info("Some workflows failed, not setting success status");
+      return;
+    }
+    await octokit.rest.repos.createCommitStatus({
+      owner,
+      repo,
+      sha,
+      state: "success",
+      context: statusContext,
+      description: `All ${workflowRuns.data.workflow_runs.length} workflows passed, PR approved`,
+      target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+    });
+    core.info("Set success status for approved PR with all workflows passed");
   }
 }
 async function handleWorkflowRun(octokit, context, statusContext) {

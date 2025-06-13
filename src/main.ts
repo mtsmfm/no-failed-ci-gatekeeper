@@ -105,6 +105,37 @@ async function handlePullRequestReview(
       target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
     core.info("Set success status for approved PR with no workflows");
+  } else {
+    // Workflows exist - only set success if all have completed successfully
+    const pendingRuns = workflowRuns.data.workflow_runs.filter(
+      (run) => run.status === "queued" || run.status === "in_progress",
+    );
+
+    if (pendingRuns.length > 0) {
+      core.info("Workflows still running, not setting status based on approval");
+      return;
+    }
+
+    const failedRuns = workflowRuns.data.workflow_runs.filter(
+      (run) => run.conclusion === "failure" || run.conclusion === "cancelled",
+    );
+
+    if (failedRuns.length > 0) {
+      core.info("Some workflows failed, not setting success status");
+      return;
+    }
+
+    // All workflows completed successfully and PR is approved
+    await octokit.rest.repos.createCommitStatus({
+      owner,
+      repo,
+      sha,
+      state: "success",
+      context: statusContext,
+      description: `All ${workflowRuns.data.workflow_runs.length} workflows passed, PR approved`,
+      target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+    });
+    core.info("Set success status for approved PR with all workflows passed");
   }
 }
 
