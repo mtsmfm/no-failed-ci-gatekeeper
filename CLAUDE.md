@@ -28,6 +28,8 @@ A GitHub Action that creates a required status check to prevent accidental merge
 
 - `npm run build` - Build and bundle with esbuild (fast, clean output)
 - `npm run lint` - ESLint
+- `npm run format` - Format code with Prettier
+- `npm run format:check` - Check code formatting
 - `npm run typecheck` - TypeScript check
 
 ## Important Notes

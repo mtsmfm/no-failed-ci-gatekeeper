@@ -1,20 +1,20 @@
-name: 'No Failed CI Gatekeeper'
-description: 'A GitHub Action that stands in for the required checks missing when conditional workflows are skipped'
-author: ''
+name: "No Failed CI Gatekeeper"
+description: "A GitHub Action that stands in for the required checks missing when conditional workflows are skipped"
+author: ""
 branding:
-  icon: 'check-circle'
-  color: 'green'
+  icon: "check-circle"
+  color: "green"
 
 inputs:
   github-token:
-    description: 'The GitHub token to use for authentication'
+    description: "The GitHub token to use for authentication"
     required: false
     default: ${{ github.token }}
   context:
-    description: 'The context (label) to use for the commit status'
+    description: "The context (label) to use for the commit status"
     required: false
-    default: 'no-failed-ci-gatekeeper'
+    default: "no-failed-ci-gatekeeper"
 
 runs:
-  using: 'node20'
-  main: 'dist/index.js'
+  using: "node20"
+  main: "dist/index.js"

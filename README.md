@@ -49,8 +49,7 @@ You can create a separate workflow that runs after all checks pass by checking t
 ```yaml
 name: Deploy After All Checks
 
-on:
-  status
+on: status
 
 jobs:
   deploy:

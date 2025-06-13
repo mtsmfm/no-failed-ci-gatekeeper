@@ -32,7 +32,7 @@ async function run(): Promise<void> {
 async function handlePullRequestReview(
   octokit: ReturnType<typeof github.getOctokit>,
   context: typeof github.context,
-  statusContext: string
+  statusContext: string,
 ): Promise<void> {
   const review = context.payload.review;
   const pr = context.payload.pull_request;
@@ -76,7 +76,7 @@ async function handlePullRequestReview(
 async function handleCheckSuite(
   octokit: ReturnType<typeof github.getOctokit>,
   context: typeof github.context,
-  statusContext: string
+  statusContext: string,
 ): Promise<void> {
   const checkSuite = context.payload.check_suite;
   if (!checkSuite) {
@@ -140,7 +140,7 @@ async function handleCheckSuite(
 
   // Check the conclusion of the check suite
   const hasFailures = checkRuns.data.check_runs.some(
-    (run) => run.conclusion === "failure" || run.conclusion === "cancelled"
+    (run) => run.conclusion === "failure" || run.conclusion === "cancelled",
   );
 
   const allSuccess = !hasFailures && checkSuite.conclusion === "success";
@@ -155,7 +155,7 @@ async function handleCheckSuite(
   });
 
   core.info(
-    `Set ${allSuccess ? "success" : "failure"} status based on check suite`
+    `Set ${allSuccess ? "success" : "failure"} status based on check suite`,
   );
 }
 
