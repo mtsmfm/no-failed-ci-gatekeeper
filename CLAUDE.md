@@ -26,9 +26,15 @@ A GitHub Action that creates a required status check to prevent accidental merge
 
 ## Build Commands
 
-- `npm run build` - Build and bundle with ncc
+- `npm run build` - Build and bundle with esbuild (fast, clean output)
 - `npm run lint` - ESLint
 - `npm run typecheck` - TypeScript check
+
+## Important Notes
+
+- **Commit `dist/` directory** - Required for GitHub Actions to work
+- Build produces single `dist/index.js` file only
+- Using esbuild for fast bundling (much faster than ncc)
 
 ## Usage
 
