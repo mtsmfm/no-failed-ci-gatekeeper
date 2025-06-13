@@ -11,20 +11,58 @@ You can set the status created by this action as Required status check.
 
 ## How it works
 
-This action creates a single commit status on every PR head commit.
+This action creates a single commit status on every PR head commit by responding to GitHub events:
 
-- **If at least one workflow executes** -> it waits for all running workflows and reports the aggregate result (`success` when they all pass, otherwise `failure`).
-- **If no workflow executes at all** -> once a PR gets review it creates `success` result.
+- **On `check_suite` events** -> Sets initial "pending" status when requested, final status when completed
+- **On `pull_request_review` events** -> If PR is approved and no workflows exist, sets "success" status
+
+This event-driven approach avoids wasteful polling and responds immediately to workflow completions.
 
 ## Quick start
 
 ```yaml
-TODO
+name: CI Gatekeeper
+
+on:
+  check_suite:
+    types: [requested, completed]
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  gatekeeper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mtsmfm/no-failed-ci-gatekeeper@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 1. Add the workflow above.
 2. Create PR and run the above workflow at least once
 3. Open **Settings > Rulesets > YOUR RULE > Require status checks to pass** and add **no-failed-ci-gatekeeper** _only_.
+
+### Triggering workflows after all checks complete
+
+You can create a separate workflow that runs after all checks pass by checking the status created by this action:
+
+```yaml
+name: Deploy After All Checks
+
+on:
+  status
+
+jobs:
+  deploy:
+    if: |
+      github.event.state == 'success' &&
+      github.event.context == 'no-failed-ci-gatekeeper'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        run: echo "All checks passed, deploying..."
+```
 
 ---
 
