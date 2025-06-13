@@ -57,6 +57,7 @@ async function handlePullRequest(
     state: "pending",
     context: statusContext,
     description: "Waiting for CI workflows to complete",
+    target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
   });
 
   core.info("Set initial pending status");
@@ -101,6 +102,7 @@ async function handlePullRequestReview(
       state: "success",
       context: statusContext,
       description: "No workflows triggered, PR approved",
+      target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
     core.info("Set success status for approved PR with no workflows");
   }
@@ -163,6 +165,7 @@ async function handleWorkflowRun(
       state: "pending",
       context: statusContext,
       description: `Waiting for ${pendingRuns.length} workflow(s) to complete`,
+      target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
     });
     return;
   }
@@ -183,6 +186,7 @@ async function handleWorkflowRun(
     description: allSuccess
       ? `All ${allRuns.data.workflow_runs.length} workflows passed`
       : `${failedRuns.length} workflow(s) failed`,
+    target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
   });
 
   core.info(`Set ${allSuccess ? "success" : "failure"} status`);
